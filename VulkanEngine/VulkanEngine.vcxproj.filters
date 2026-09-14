@@ -67,5 +67,6 @@
     <None Include="shaders\triangle.frag">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="compile.sh" />
   </ItemGroup>
 </Project>
