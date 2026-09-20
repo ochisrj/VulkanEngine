@@ -61,12 +61,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\triangle.vert">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="shaders\triangle.frag">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="compile.sh" />
   </ItemGroup>
 </Project>
