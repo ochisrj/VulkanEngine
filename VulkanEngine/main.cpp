@@ -35,7 +35,7 @@
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
-#define APP_USE_UNLIMITED_FRAME_RATE
+//#define APP_USE_UNLIMITED_FRAME_RATE
 #ifdef _DEBUG
 #define APP_USE_VULKAN_DEBUG_REPORT
 static VkDebugReportCallbackEXT g_DebugReport = VK_NULL_HANDLE;
@@ -54,12 +54,6 @@ static VkDescriptorPool         g_DescriptorPool = VK_NULL_HANDLE;
 static ImGui_ImplVulkanH_Window g_MainWindowData;
 static uint32_t                 g_MinImageCount = 2;
 static bool                     g_SwapChainRebuild = false;
-// Runtime VSync toggle: true = FIFO (locked), false = MAILBOX/IMMEDIATE (uncapped)
-#ifdef APP_USE_UNLIMITED_FRAME_RATE
-static bool                     g_VSyncEnabled = false;
-#else
-static bool                     g_VSyncEnabled = true;
-#endif
 
 // ---- Triangle pipeline state (NEW) ----
 static VkPipeline               g_TrianglePipeline = VK_NULL_HANDLE;
@@ -223,57 +217,11 @@ static void SetupVulkanWindow(ImGui_ImplVulkanH_Window* wd, VkSurfaceKHR surface
     wd->Surface = surface;
     wd->SurfaceFormat = ImGui_ImplVulkanH_SelectSurfaceFormat(g_PhysicalDevice, wd->Surface, requestSurfaceImageFormat, (size_t)IM_COUNTOF(requestSurfaceImageFormat), requestSurfaceColorSpace);
 
-    // VSYNC CONTROL (Vulkan): PresentMode decides if we sync to monitor.
-    //   FIFO          = VSync ON  (locked to refresh, no tearing)
-    //   IMMEDIATE     = VSync OFF (uncapped, tearing allowed)
-    //   MAILBOX       = VSync OFF, no tearing (triple-buffered)
-    // Runtime toggle g_VSyncEnabled is changed by checkbox in "Hello, world!" window.
-    if (g_VSyncEnabled)
-    {
-        VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_FIFO_KHR };
-        wd->PresentMode = ImGui_ImplVulkanH_SelectPresentMode(g_PhysicalDevice, wd->Surface, &present_modes[0], IM_COUNTOF(present_modes));
-    }
-    else
-    {
-        VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR };
-        wd->PresentMode = ImGui_ImplVulkanH_SelectPresentMode(g_PhysicalDevice, wd->Surface, &present_modes[0], IM_COUNTOF(present_modes));
-    }
+    VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_FIFO_KHR };
+    wd->PresentMode = ImGui_ImplVulkanH_SelectPresentMode(g_PhysicalDevice, wd->Surface, &present_modes[0], IM_COUNTOF(present_modes));
 
     IM_ASSERT(g_MinImageCount >= 2);
     ImGui_ImplVulkanH_CreateOrResizeWindow(g_Instance, g_PhysicalDevice, g_Device, wd, g_QueueFamily, g_Allocator, width, height, g_MinImageCount, 0);
-}
-
-static const char* GetPresentModeName(VkPresentModeKHR mode)
-{
-    switch (mode)
-    {
-    case VK_PRESENT_MODE_IMMEDIATE_KHR: return "IMMEDIATE (VSync OFF, tear)";
-    case VK_PRESENT_MODE_MAILBOX_KHR:   return "MAILBOX (VSync OFF, no tear)";
-    case VK_PRESENT_MODE_FIFO_KHR:      return "FIFO (VSync ON)";
-    case VK_PRESENT_MODE_FIFO_RELAXED_KHR: return "FIFO_RELAXED";
-    default: return "Unknown";
-    }
-}
-
-static void SetVSyncEnabled(bool enabled)
-{
-    if (g_VSyncEnabled == enabled)
-        return;
-    g_VSyncEnabled = enabled;
-    ImGui_ImplVulkanH_Window* wd = &g_MainWindowData;
-    if (wd->Surface == VK_NULL_HANDLE)
-        return; // not yet initialized
-    if (g_VSyncEnabled)
-    {
-        VkPresentModeKHR m[] = { VK_PRESENT_MODE_FIFO_KHR };
-        wd->PresentMode = ImGui_ImplVulkanH_SelectPresentMode(g_PhysicalDevice, wd->Surface, m, IM_COUNTOF(m));
-    }
-    else
-    {
-        VkPresentModeKHR m[] = { VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR };
-        wd->PresentMode = ImGui_ImplVulkanH_SelectPresentMode(g_PhysicalDevice, wd->Surface, m, IM_COUNTOF(m));
-    }
-    g_SwapChainRebuild = true; // will recreate swapchain on next frame with new PresentMode
 }
 
 // ---------------------------------------------------------------------------
@@ -684,8 +632,8 @@ int main(int, char**)
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
+        //if (show_demo_window)
+        //    ImGui::ShowDemoWindow(&show_demo_window);
 
         {
             static float f = 0.0f;
@@ -704,18 +652,6 @@ int main(int, char**)
                 counter++;
             ImGui::SameLine();
             ImGui::Text("counter = %d", counter);
-
-            ImGui::Separator();
-            // VSync toggle - controls VkPresentModeKHR (FIFO=ON / MAILBOX/IMMEDIATE=OFF)
-            {
-                bool vsync = g_VSyncEnabled;
-                if (ImGui::Checkbox("VSync", &vsync))
-                    SetVSyncEnabled(vsync);
-                ImGui::SameLine();
-                ImGui::TextDisabled("(%s)", GetPresentModeName(g_MainWindowData.PresentMode));
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("ON = FIFO (locked to monitor)\nOFF = MAILBOX/IMMEDIATE (uncapped)\nSwapchain rebuilds on toggle");
-            }
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
             ImGui::End();
